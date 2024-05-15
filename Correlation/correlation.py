@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[60]:
+# In[102]:
 
 
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 
 # In[3]:
@@ -152,28 +153,29 @@ class correlate:
         
 
 
-# In[97]:
+# In[98]:
 
 
 test = correlate(timestep_tables)
 
 
-# In[ ]:
+# In[99]:
 
 
+10398000/3000
 
 
-
-# In[ ]:
-
+# In[103]:
 
 
-
-
-# In[ ]:
-
-
-
+c1  = np.array([]) #11
+c2  = np.array([]) #12
+c3  = np.array([]) #22
+for i in tqdm(range(3466), desc='Processing'):
+    c1 = np.append(c1,test.run(1,1,i*3000))
+    c2 = np.append(c2,test.run(1,2,i*3000))
+    c3 = np.append(c2,test.run(2,2,i*3000))
+    
 
 
 # In[ ]:
