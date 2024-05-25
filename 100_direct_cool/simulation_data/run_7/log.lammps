@@ -1,0 +1,274 @@
+LAMMPS (2 Aug 2023 - Update 3)
+
+    units metal
+boundary p p p
+atom_style full
+pair_style tersoff
+neighbor 2.0 bin
+neigh_modify delay 1
+
+
+
+
+read_data /root/Desktop/host/100_direct_cool/init/SiO.data
+Reading data file ...
+  orthogonal box = (0 0 0) to (12.589463 12.589463 13.222096)
+  1 by 1 by 1 MPI processor grid
+WARNING: Atom style in data file atom-ID molecule-ID atom-type q x y z differs from currently defined atom style full (../read_data.cpp:621)
+  reading atoms ...
+  96 atoms
+Finding 1-2 1-3 1-4 neighbors ...
+  special bond factors lj:    0        0        0       
+  special bond factors coul:  0        0        0       
+     0 = max # of 1-2 neighbors
+     0 = max # of 1-3 neighbors
+     0 = max # of 1-4 neighbors
+     1 = max # of special neighbors
+  special bonds CPU = 0.000 seconds
+  read_data CPU = 0.006 seconds
+replicate 1 1 1
+Replication is creating a 1x1x1 = 1 times larger system...
+  orthogonal box = (0 0 0) to (12.589463 12.589463 13.222096)
+  1 by 1 by 1 MPI processor grid
+  96 atoms
+Finding 1-2 1-3 1-4 neighbors ...
+  special bond factors lj:    0        0        0       
+  special bond factors coul:  0        0        0       
+     0 = max # of 1-2 neighbors
+     0 = max # of 1-3 neighbors
+     0 = max # of 1-4 neighbors
+     1 = max # of special neighbors
+  special bonds CPU = 0.000 seconds
+  replicate CPU = 0.004 seconds
+
+pair_coeff * *  /root/Desktop/host/job1/SiO.tersoff Si O
+Reading tersoff potential file /root/Desktop/host/job1/SiO.tersoff with DATE: 2010-08-16
+
+
+
+group Si type 1
+32 atoms in group Si
+group O type 2
+64 atoms in group O
+#create_bonds many SiO SiO 1 0.5 10
+
+dump dmp all xyz 2000 dump.lammpstrj
+
+
+
+variable apot equal pe
+# first number: number of steps to get current temp
+# second number: calculate average n number of temp read above.
+# third number: temp record (this must be larger than the one above )
+
+variable atemp equal temp
+fix temp_info all ave/time 10 200 2000 v_atemp file parameters/temperature.dat
+
+#The cutoff used for pairwise computation (any pair style) and the
+#associated neighbor list is the maximum cutoff that any compute
+#can use. Atoms don't know any info about their neighbors
+#further away than that.
+
+# compute coord number
+compute coor12 Si coord/atom cutoff 2.5 group O
+compute coor11 Si coord/atom cutoff 2.5 group Si
+compute coor22 O coord/atom cutoff 2.0 group O
+
+compute sumcoor12 all reduce ave c_coor12
+compute sumcoor11 all reduce ave c_coor11
+compute sumcoor22 all reduce ave c_coor22
+
+
+fix 12coord all ave/time  10 200 2000 c_sumcoor12 file parameters/Si-O_coord_number.dat
+fix 11coord all ave/time  10 200 2000  c_sumcoor11 file parameters/Si-Si_coord_number.dat
+fix 22coord all ave/time  10 200 2000  c_sumcoor22 file parameters/O-O_coord_number.dat
+
+
+
+
+# unit cell information
+variable avol equal vol
+variable alx equal lx
+variable aly equal ly
+variable alz equal lz
+fix cell_info all ave/time 10 200 2000 v_avol v_alx v_aly v_alz file parameters/cell_volume.dat
+
+
+fix potential_info all ave/time 10 200 2000 v_apot file parameters/potential-energy.dat
+thermo 1000
+
+
+
+velocity all create 6000 53928 mom yes rot no dist gaussian
+fix npt1 all npt temp 6000 10 0.1 iso 0 0  1
+timestep 0.001
+
+run 100000 #fuck 10W times
+Neighbor list info ...
+  update: every = 1 steps, delay = 1 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 4.8
+  ghost atom cutoff = 4.8
+  binsize = 2.4, bins = 6 6 6
+  4 neighbor lists, perpetual/occasional/extra = 1 3 0
+  (1) pair tersoff, perpetual
+      attributes: full, newton on
+      pair build: full/bin
+      stencil: full/bin/3d
+      bin: standard
+  (2) compute coord/atom, occasional, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+  (3) compute coord/atom, occasional, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+  (4) compute coord/atom, occasional, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+Per MPI rank memory allocation (min/avg/max) = 6.021 | 6.021 | 6.021 Mbytes
+   Step          Temp          E_pair         E_mol          TotEng         Press          Volume    
+         0   6000          -638.06385      0             -564.38556      73800.118      2095.6304    
+      1000   5457.7543     -559.95603      0             -492.93637      4364.9749      2254.5005    
+      2000   5509.1848     -563.64086      0             -495.98965      25294.594      2225.9996    
+      3000   5844.8491     -557.32524      0             -485.55217     -4271.1695      2314.8876    
+      4000   5685.0861     -565.458        0             -495.64677      3757.8977      2350.348     
+      5000   5760.669      -567.92763      0             -497.18827     -5841.3811      2311.7628    
+      6000   6551.0356     -571.42816      0             -490.98332      394.04548      2329.5587    
+      7000   6191.6698     -577.95368      0             -501.92175     -15094.678      2386.3002    
+      8000   5745.74       -559.42897      0             -488.87292     -4503.3847      2286.4646    
+      9000   6002.9192     -559.27373      0             -485.5596       14135.82       2323.681     
+     10000   5426.0347     -560.54714      0             -493.91699      7975.683       2362.5439    
+     11000   5656.3302     -567.99383      0             -498.53571     -5573.5948      2329.1717    
+     12000   4832.7029     -569.38805      0             -510.04384      7734.2511      2319.0967    
+     13000   5332.1542     -575.617        0             -510.13967     -10560.809      2303.51      
+     14000   5964.7806     -571.14841      0             -497.90261     -11612.151      2193.7523    
+     15000   5266.6908     -568.64004      0             -503.96658      3134.2886      2290.0158    
+     16000   5293.215      -570.98606      0             -505.98689      12322.782      2251.7037    
+     17000   4513.5177     -574.19893      0             -518.77422     -159.94806      2240.7085    
+     18000   5620.9123     -571.9439       0             -502.9207       14376.459      2279.0406    
+     19000   5363.6953     -580.9565       0             -515.09186      20666.131      2266.9832    
+     20000   5147.9022     -571.59946      0             -508.38469     -2998.6717      2324.9461    
+     21000   4258.9056     -585.65481      0             -533.35667     -8636.0882      2286.0774    
+     22000   5021.4312     -581.29834      0             -519.6366       31575.1        2288.0447    
+     23000   4619.5139     -580.86948      0             -524.14317      2953.9678      2218.684     
+     24000   4295.0968     -578.5981       0             -525.85555      14610.264      2186.8294    
+     25000   4540.0291     -574.97215      0             -519.2219       44966.15       2148.7311    
+     26000   4200.464      -580.07186      0             -528.49136     -8743.4852      2286.3444    
+     27000   4731.0542     -581.41067      0             -523.31468     -6407.9574      2299.442     
+     28000   4222.017      -584.66845      0             -532.82329      4728.0717      2322.9107    
+     29000   3654.7275     -584.58839      0             -539.70938     -24360.571      2244.8766    
+     30000   4333.6296     -580.696        0             -527.48027      7678.084       2285.6787    
+     31000   4023.0672     -586.03693      0             -536.63481     -33711.112      2400.3991    
+     32000   4316.1127     -577.7397       0             -524.73908     -9470.7031      2312.1278    
+     33000   4068.5354     -585.07442      0             -535.11397     -18338.766      2367.1601    
+     34000   3290.2068     -583.71308      0             -543.31028     -14161.718      2364.4392    
+     35000   4005.8476     -581.54498      0             -532.35432     -6195.7361      2278.9479    
+     36000   3746.0041     -588.45259      0             -542.45273     -490.92754      2279.5835    
+     37000   3687.7826     -592.94794      0             -547.66302      2378.5538      2243.062     
+     38000   4202.0347     -586.24797      0             -534.64819      13091.77       2278.6421    
+     39000   3478.5306     -589.03564      0             -546.32028      18968.765      2336.4537    
+     40000   3459.3562     -592.99753      0             -550.51762     -14968.903      2332.1291    
+     41000   3519.7548     -589.247        0             -546.02542     -554.191        2258.6554    
+     42000   3687.1175     -591.47952      0             -546.20277      9762.8429      2278.3551    
+     43000   3586.6902     -592.14799      0             -548.10446      4511.0085      2223.1485    
+     44000   2956.3707     -593.58115      0             -557.27776      14478.526      2199.4991    
+     45000   3704.426      -591.3436       0             -545.85431      5049.2527      2227.5533    
+     46000   2920.9819     -595.29546      0             -559.42664     -14324.692      2273.8901    
+     47000   3153.1927     -595.55409      0             -556.83379     -24176.087      2321.2893    
+     48000   2811.9668     -594.95429      0             -560.42414     -27461.833      2343.6062    
+     49000   2828.0237     -599.97993      0             -565.25261      1289.8414      2291.4303    
+     50000   3045.6464     -596.65811      0             -559.25844     -13669.759      2284.0386    
+     51000   2950.5824     -599.86576      0             -563.63345     -10600.908      2289.1068    
+     52000   2398.0265     -600.95059      0             -571.50351      16338.965      2201.4618    
+     53000   3222.92       -602.73673      0             -563.1602       14216.118      2226.2772    
+     54000   2629.1352     -602.13942      0             -569.85439      3266.4953      2250.0217    
+     55000   2500.4445     -596.75297      0             -566.04823     -6926.9203      2247.0615    
+     56000   2897.4559     -608.73384      0             -573.15391      17929.411      2255.2691    
+     57000   2741.9548     -604.73667      0             -571.06625      2015.5344      2248.1203    
+     58000   2274.7368     -605.77533      0             -577.84221     -8583.6887      2290.586     
+     59000   2168.6927     -608.85135      0             -582.22042      7055.5432      2261.0491    
+     60000   2766.7142     -608.45686      0             -574.4824       23009.37       2227.3613    
+     61000   1928.4983     -608.13771      0             -584.45631      4116.4447      2247.6793    
+     62000   2249.6356     -607.75491      0             -580.13002      12300.378      2224.8871    
+     63000   2407.9571     -607.25751      0             -577.68849      5129.6438      2241.6149    
+     64000   2252.0423     -609.60709      0             -581.95266      2418.6587      2269.5476    
+     65000   1897.2565     -609.18707      0             -585.8893      -1821.572       2297.3269    
+     66000   2177.6329     -607.76123      0             -581.02052     -16380.035      2352.6814    
+     67000   1886.4656     -610.13993      0             -586.97467     -10810.723      2321.0325    
+     68000   1835.7367     -612.32202      0             -589.7797       3357.9171      2274.8935    
+     69000   2182.7156     -613.28243      0             -586.47931      283.83306      2274.3315    
+     70000   1602.7178     -612.81799      0             -593.13707      2719.0813      2242.2438    
+     71000   1782.1065     -618.96124      0             -597.07748      5115.6585      2244.87      
+     72000   1549.9483     -613.00526      0             -593.97234     -5730.9337      2249.9442    
+     73000   1621.1666     -616.64596      0             -596.7385       2177.7695      2248.5254    
+     74000   1495.3656     -617.56614      0             -599.20348      21814.329      2213.3145    
+     75000   1574.2545     -614.22568      0             -594.89429     -1723.2869      2208.9249    
+     76000   1530.9845     -619.74532      0             -600.94527      20876.756      2189.3673    
+     77000   1361.7164     -620.33976      0             -603.61827      6749.7429      2196.7105    
+     78000   1264.5307     -618.63525      0             -603.10717      9363.4778      2201.9559    
+     79000   1237.4937     -620.07623      0             -604.88016      8615.7581      2234.6222    
+     80000   1230.0664     -625.79755      0             -610.69269     -5981.767       2271.3346    
+     81000   998.30614     -620.46756      0             -608.20864     -4154.292       2263.1845    
+     82000   1016.1587     -625.58949      0             -613.11136     -11261.789      2222.0192    
+     83000   1152.5897     -625.27004      0             -611.11657      3859.1417      2218.6624    
+     84000   1035.2299     -626.39742      0             -613.68509     -31.048534      2241.3454    
+     85000   979.20465     -626.97879      0             -614.95444     -3371.6725      2247.1156    
+     86000   725.77378     -625.94853      0             -617.03623     -422.55364      2244.7812    
+     87000   880.93069     -627.95509      0             -617.13751     -3762.2819      2227.8593    
+     88000   708.46317     -628.84176      0             -620.14203      5326.1511      2211.5954    
+     89000   707.02894     -628.50554      0             -619.82342      2719.168       2243.9271    
+     90000   526.71858     -629.00379      0             -622.53584      5019.1493      2250.8514    
+     91000   561.0919      -631.0728       0             -624.18275     -8823.3741      2257.0471    
+     92000   481.807       -631.48146      0             -625.565       -908.71928      2254.8261    
+     93000   457.8449      -632.62885      0             -627.00665     -4386.7014      2257.8588    
+     94000   390.41825     -633.63127      0             -628.83704      938.95896      2254.6287    
+     95000   319.92077     -633.55376      0             -629.62522     -7239.83        2250.3743    
+     96000   284.00988     -634.83986      0             -631.3523      -5398.9064      2269.302     
+     97000   168.33627     -635.25572      0             -633.1886      -3653.6455      2254.1058    
+     98000   133.37679     -636.13202      0             -634.49419     -1152.7657      2219.5366    
+     99000   79.828495     -636.86783      0             -635.88756     -1781.8681      2233.4661    
+    100000   19.251931     -637.54424      0             -637.30783     -27.144644      2230.6141    
+Loop time of 125.014 on 1 procs for 100000 steps with 96 atoms
+
+Performance: 69.112 ns/day, 0.347 hours/ns, 799.913 timesteps/s, 76.792 katom-step/s
+5.8% CPU use with 1 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 102.39     | 102.39     | 102.39     |   0.0 | 81.90
+Bond    | 0.0036033  | 0.0036033  | 0.0036033  |   0.0 |  0.00
+Neigh   | 3.8747     | 3.8747     | 3.8747     |   0.0 |  3.10
+Comm    | 2.5589     | 2.5589     | 2.5589     |   0.0 |  2.05
+Output  | 3.4849     | 3.4849     | 3.4849     |   0.0 |  2.79
+Modify  | 12.092     | 12.092     | 12.092     |   0.0 |  9.67
+Other   |            | 0.6094     |            |       |  0.49
+
+Nlocal:             96 ave          96 max          96 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            494 ave         494 max         494 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:         2134 ave        2134 max        2134 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 2134
+Ave neighs/atom = 22.229167
+Ave special neighs/atom = 0
+Neighbor list builds = 2953
+Dangerous builds = 0
+
+
+write_data parameters/amorphousSiO.data
+System init for write_data ...
+
+
+    
+Total wall time: 0:02:05
